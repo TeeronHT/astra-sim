@@ -60,6 +60,8 @@ class NS3BackendCompletionTracker {
             AstraSim::LoggerFactory::get_logger("network")->debug(
                 "All ranks have finished. Exiting simulation.");
             // cout << "All ranks have finished. Exiting simulation.\n";
+            // Tear down persistent connections, flush traces, write counters.
+            finalize_backend(true);
             Simulator::Stop();
             Simulator::Destroy();
             exit(0);
@@ -129,8 +131,21 @@ class ASTRASimNetwork : public AstraSim::AstraNetworkAPI {
                          void* fun_arg) {
         int src_id = rank;
 
-        // Trigger ns3 to schedule RDMA QP event.
-        send_flow(src_id, dst_id, message_size, msg_handler, fun_arg, tag);
+        // Optional attribution carried by the System layer. Unspecified
+        // fields stay unspecified; the backend never requires them.
+        MsgMeta meta;
+        if (request != nullptr) {
+            meta.collective_id = request->collective_id;
+            meta.operation_id = request->operation_id;
+            meta.phase_id = request->phase_id;
+            meta.chunk_id = request->chunk_id;
+            meta.communicator_id = request->communicator_id;
+            meta.channel_id = request->channel_id;
+        }
+
+        // Trigger ns3 to schedule RDMA QP event (LEGACY) or post the message
+        // on the pair's persistent QP (PERSISTENT).
+        send_flow(src_id, dst_id, message_size, msg_handler, fun_arg, tag, meta);
         return 0;
     }
 
@@ -300,5 +315,11 @@ int main(int argc, char* argv[]) {
 
     // Run the simulation by triggering the ns3 event queue.
     Simulator::Run();
-    return 0;
+    // Reached only when the event queue drains before every rank reported
+    // completion: an ASTRA dependency stall or a lost network message. The
+    // counters line tells which (outstanding > 0 means messages the network
+    // never completed).
+    std::cerr << "Simulator::Run returned before all ranks finished." << std::endl;
+    finalize_backend(false);
+    return 2;
 }

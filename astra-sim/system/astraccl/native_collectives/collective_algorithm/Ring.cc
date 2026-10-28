@@ -227,6 +227,14 @@ bool Ring::ready() {
     snd_req.tag = stream->stream_id;
     snd_req.reqType = UINT8;
     snd_req.vnet = this->stream->current_queue_id;
+    // Attribution for network backends that log it. The dataset id names the
+    // collective; the stream id names the chunk (dataset split) within it,
+    // and is ordered by chunk index because streams are created in order.
+    if (stream->dataset != nullptr) {
+        snd_req.collective_id = stream->dataset->my_id;
+    }
+    snd_req.chunk_id = stream->stream_id;
+    snd_req.phase_id = static_cast<uint64_t>(comType);
     stream->owner->front_end_sim_send(
         0, Sys::dummy_data, msg_size, UINT8, packet.preferred_dest,
         stream->stream_id, &snd_req, Sys::FrontEndSendRecvType::COLLECTIVE,

@@ -25,6 +25,11 @@ struct timespec_t {
     long double time_val;
 };
 
+// Optional logical-message attribution. Backends may ignore every field.
+// SIM_REQUEST_UNSPECIFIED means "not set"; the ns-3 frontend logs such
+// fields as empty and uses channel 0 for connection keying.
+constexpr uint64_t SIM_REQUEST_UNSPECIFIED = ~0ULL;
+
 struct sim_request {
     uint32_t srcRank;
     uint32_t dstRank;
@@ -33,6 +38,16 @@ struct sim_request {
     uint64_t reqCount;
     uint32_t vnet;
     uint32_t layerNum;
+    // Attribution (default: unspecified). Not part of any transport
+    // identity except channel_id, which the ns-3 PERSISTENT mode includes in
+    // its connection key.
+    uint64_t collective_id = SIM_REQUEST_UNSPECIFIED;
+    uint64_t operation_id = SIM_REQUEST_UNSPECIFIED;
+    uint64_t phase_id = SIM_REQUEST_UNSPECIFIED;
+    uint64_t chunk_id = SIM_REQUEST_UNSPECIFIED;
+    uint64_t message_id = SIM_REQUEST_UNSPECIFIED;
+    uint64_t communicator_id = SIM_REQUEST_UNSPECIFIED;
+    uint64_t channel_id = SIM_REQUEST_UNSPECIFIED;
 };
 
 class MetaData {

@@ -406,6 +406,18 @@ void Workload::issue_send_comm(
     snd_req.srcRank = src;
     snd_req.dstRank = dst;
     snd_req.reqType = UINT8;
+    // Optional attribution attributes on the Chakra node (uint64). Absent
+    // attributes stay SIM_REQUEST_UNSPECIFIED. The workload node id is always
+    // recorded as the operation id.
+    snd_req.operation_id = node->id();
+    snd_req.collective_id =
+        node->get_attr<uint64_t>("comm_collective_id", SIM_REQUEST_UNSPECIFIED);
+    snd_req.phase_id =
+        node->get_attr<uint64_t>("comm_phase_id", SIM_REQUEST_UNSPECIFIED);
+    snd_req.chunk_id =
+        node->get_attr<uint64_t>("comm_chunk_id", SIM_REQUEST_UNSPECIFIED);
+    snd_req.channel_id =
+        node->get_attr<uint64_t>("comm_channel_id", SIM_REQUEST_UNSPECIFIED);
     SendPacketEventHandlerData* sehd = new SendPacketEventHandlerData;
     sehd->callable = this;
     sehd->wlhd = new WorkloadLayerHandlerData;
